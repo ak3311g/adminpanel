@@ -1,9 +1,12 @@
 import AdminJS from "adminjs";
 import AdminJSExpress from "@adminjs/express";
+import * as AdminJSMongoose from "@adminjs/mongoose";
 import express from "express";
 import connectDB from "./db/db.js";
 import Admin from "./model/adminModel.js";
 import dotenv from "dotenv";
+import logFile from "./error/logFile.js";
+import session from "express-session";
 dotenv.config();
 
 const app = express();
@@ -11,36 +14,45 @@ const port = process.env.PORT || 3000;
 
 connectDB();
 
-const adminJs = new AdminJS({
-    resources: [
-        {
-            resource: Admin,
-            options: {
-                properties: {
-                    password: {
-                        isVisible: false
+AdminJS.registerAdapter(AdminJSMongoose);
+
+
+    const adminJs = new AdminJS({
+        resources: [
+            {
+                resource: Admin,
+                options: {
+                    properties: {
+                        password: {
+                            isVisible: true
+                        }
                     }
                 }
             }
-        }
-    ],
-    rootPath: "/admin"
-});
-
-// Authentication routes 
-
-const router = AdminJSExpress.buildAuthenticatedRouter(adminJs, {
-    authenticate: async (email, password) => {
-        const admin = await Admin
-            .findOne({ email });
-        if (admin) {
-            if (admin.password === password) {
-                return admin;
+        ],
+        rootPath: "/admin"
+    });
+    
+    // Authentication routes 
+    
+    const router = AdminJSExpress.buildAuthenticatedRouter(adminJs, {
+        authenticate: async (email, password) => {
+            const admin = await Admin
+                .findOne({ email });
+            if (admin) {
+                if (admin.password === password) {
+                    return admin;
+                }
             }
+            return null;
         }
-        return null;
-    }
-});
+    });
+
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true
+}));
 
 app.use(adminJs.options.rootPath, router);
 
