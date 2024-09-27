@@ -25,8 +25,17 @@ AdminJS.registerAdapter(AdminJSMongoose);
                     properties: {
                         password: {
                             isVisible: true
+                        },
+                        email: {
+                            isId: true,
+                            isVisible: { list: true, show: true, edit: true }
                         }
+                    },
+                    actions: {
+                        new: {
+                            isAccessible: ({ currentAdmin }) => currentAdmin && currentAdmin.role === "admin"
                     }
+                }
                 }
             }
         ],
